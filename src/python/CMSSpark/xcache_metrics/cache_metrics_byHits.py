@@ -217,6 +217,7 @@ for file_ in filenames:
                     *partition_columns_pop)\
             .select('day', 'tot_CoreHrs', 'tot_WallHrs', explode('task_set_set').alias('task_set'), *partition_columns_pop) \
             .select('day', 'tot_CoreHrs', 'tot_WallHrs', explode('task_set').alias('task'), *partition_columns_pop) \
+            .dropDuplicates(['day', 'elements', 'task'])\
             .distinct().withColumn('date', from_unixtime(col('day')/1000)).withColumnRenamed('b_block_id', 'elements')\
             .groupby('date', 'elements')\
             .agg(
