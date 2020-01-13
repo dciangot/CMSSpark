@@ -53,7 +53,7 @@ sc = spark_context('cms', True, True)
 verbose = True
 sqlContext = SQLContext(sc)
 tables = {}
-block_size = sqlContext.read.parquet("hdfs://analytix/cms/users/dciangot/block_size")
+dataset_size = sqlContext.read.parquet("hdfs://analytix/cms/users/dciangot/dataset_size")
 
 filenames = ['01', '02', '03','04','05','06','07','08','09','10','11','12']
 #filenames = ['01','02','03', '04']
@@ -79,10 +79,10 @@ for file_ in filenames:
         if not mc_prod:
             tb_condor = tables["condor_df"].filter(col('data.DESIRED_CMSDataset').isNotNull() & (col('data.CMSPrimaryDataTier').isNotNull()) & (col('data.Status')=="Completed"))\
                                            .withColumn('day', (col('data.RecordTime')-col('data.RecordTime')%fn.lit(86400000))/fn.lit(1000))\
-                                           .select('day', 'data.Country', 'data.CRAB_DataBlock', 'data.Type', 'data.CMSSite', 'data.CRAB_Workflow', 'data.CRAB_UserHN',
+                                           .select('day', 'data.Country', 'data.DESIRED_CMSDataset', 'data.Type', 'data.CMSSite', 'data.CRAB_Workflow', 'data.CRAB_UserHN',
                                                    'data.WallClockHr', 'data.OVERFLOW_CHECK', 'data.RequestCpus', 'data.InputData', 'data.CpuTimeHr',
                                                    'data.CoreHr', 'data.Chirp_CRAB3_Job_ExitCode', 'data.OverflowType')
-            partition_columns = ['CRAB_DataBlock', 'Country', 'RequestCpus', 'Type', 'CMSSite', 'CRAB_Workflow', 'CRAB_UserHN', 'OVERFLOW_CHECK', 'InputData', 'd_data_tier_id', 'block_size', 'OverflowType', 'Chirp_CRAB3_Job_ExitCode']
+            partition_columns = ['DESIRED_CMSDataset', 'Country', 'RequestCpus', 'Type', 'CMSSite', 'CRAB_Workflow', 'CRAB_UserHN', 'OVERFLOW_CHECK', 'InputData', 'd_data_tier_id', 'dataset_size', 'OverflowType', 'Chirp_CRAB3_Job_ExitCode']
         else:
             tb_condor = tables["condor_df"].filter((col('data.CMSSite').isNotNull()) & (col('data.Status')=="Completed") & (col('data.CRAB_DataBlock').isin(['MCFakeBlock', 'UserFilesFakeBlock']) )  & (col('data.Type')=='analysis'))\
                                            .withColumn('day', (col('data.RecordTime')-col('data.RecordTime')%fn.lit(86400000))/fn.lit(1000))\
@@ -94,11 +94,11 @@ for file_ in filenames:
 
         tb_condor.persist(StorageLevel.MEMORY_AND_DISK)
 
-        block_size.registerTempTable('block_size_df')
+        dataset_size.registerTempTable('dataset_size_df')
         tb_condor.registerTempTable('tb_condor')
 
         if not mc_prod:
-            query = "SELECT * FROM tb_condor JOIN block_size_df ON block_size_df.block_name = CRAB_DataBlock"  # % ','.join(cols)
+            query = "SELECT * FROM tb_condor JOIN dataset_size_df ON dataset_size_df.dataset_name = DESIRED_CMSDataset"  # % ','.join(cols)
             jm_agg_df = sqlContext.sql(query)
         else:
             jm_agg_df = tb_condor 
