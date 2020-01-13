@@ -77,14 +77,14 @@ for file_ in filenames:
     for mc_prod in [True, False]:
 
         if not mc_prod:
-            tb_condor = tables["condor_df"].filter(col('data.DESIRED_CMSDataset').isNotNull())\
+            tb_condor = tables["condor_df"].filter(col('data.DESIRED_CMSDataset').isNotNull() & (col('data.CMSPrimaryDataTier').isNotNull()) & (col('data.Status')=="Completed"))\
                                            .withColumn('day', (col('data.RecordTime')-col('data.RecordTime')%fn.lit(86400000))/fn.lit(1000))\
                                            .select('day', 'data.Country', 'data.CRAB_DataBlock', 'data.Type', 'data.CMSSite', 'data.CRAB_Workflow', 'data.CRAB_UserHN',
                                                    'data.WallClockHr', 'data.OVERFLOW_CHECK', 'data.RequestCpus', 'data.InputData', 'data.CpuTimeHr',
                                                    'data.CoreHr', 'data.Chirp_CRAB3_Job_ExitCode', 'data.OverflowType')
             partition_columns = ['CRAB_DataBlock', 'Country', 'RequestCpus', 'Type', 'CMSSite', 'CRAB_Workflow', 'CRAB_UserHN', 'OVERFLOW_CHECK', 'InputData', 'd_data_tier_id', 'block_size', 'OverflowType', 'Chirp_CRAB3_Job_ExitCode']
         else:
-            tb_condor = tables["condor_df"].filter((col('data.CMSSite').isNotNull()) & (col('data.CRAB_DataBlock').isin(['MCFakeBlock', 'UserFilesFakeBlock']) )  & (col('data.Type')=='analysis'))\
+            tb_condor = tables["condor_df"].filter((col('data.CMSSite').isNotNull()) & (col('data.Status')=="Completed") & (col('data.CRAB_DataBlock').isin(['MCFakeBlock', 'UserFilesFakeBlock']) )  & (col('data.Type')=='analysis'))\
                                            .withColumn('day', (col('data.RecordTime')-col('data.RecordTime')%fn.lit(86400000))/fn.lit(1000))\
                                            .select('day', 'data.Country', 'data.CMSSite', 'data.CRAB_Workflow', 'data.CRAB_UserHN',
                                                    'data.WallClockHr', 'data.RequestCpus', 'data.CpuTimeHr',
